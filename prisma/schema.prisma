@@ -1,0 +1,306 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Company ─────────────────────────────────────────────────────────────────
+model Company {
+  id              String   @id @default(cuid())
+  name            String
+  gstin           String?
+  pan             String?
+  address         String?
+  city            String?
+  state           String?
+  stateCode       String?
+  pincode         String?
+  phone           String?
+  email           String?
+  website         String?
+  logoUrl         String?
+  fyStartMonth    Int      @default(4) // April = 4
+  fyStartYear     Int      @default(2024)
+  currency        String   @default("INR")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accounts        Account[]
+  contacts        Contact[]
+  invoices        Invoice[]
+  expenses        Expense[]
+  journalEntries  JournalEntry[]
+  payments        Payment[]
+}
+
+// ─── Account (Chart of Accounts) ─────────────────────────────────────────────
+model Account {
+  id          String      @id @default(cuid())
+  code        String
+  name        String
+  type        AccountType
+  subType     String?     // e.g. "Current Assets", "Fixed Assets"
+  parentId    String?
+  parent      Account?    @relation("AccountChildren", fields: [parentId], references: [id])
+  children    Account[]   @relation("AccountChildren")
+  description String?
+  isActive    Boolean     @default(true)
+  openingBalance Float   @default(0)
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  debitLines  JournalLine[] @relation("DebitAccount")
+  creditLines JournalLine[] @relation("CreditAccount")
+
+  @@unique([companyId, code])
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+// ─── Contact (Customer / Vendor / Both) ──────────────────────────────────────
+model Contact {
+  id          String      @id @default(cuid())
+  name        String
+  type        ContactType @default(CUSTOMER)
+  gstin       String?
+  pan         String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  stateCode   String?
+  pincode     String?
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  invoices    Invoice[]
+  expenses    Expense[]
+}
+
+enum ContactType {
+  CUSTOMER
+  VENDOR
+  BOTH
+}
+
+// ─── Tax Rate ─────────────────────────────────────────────────────────────────
+model TaxRate {
+  id          String  @id @default(cuid())
+  name        String  // e.g. "GST 18%"
+  rate        Float   // e.g. 18.0
+  cgst        Float   // e.g. 9.0
+  sgst        Float   // e.g. 9.0
+  igst        Float   // e.g. 18.0
+  isDefault   Boolean @default(false)
+  isActive    Boolean @default(true)
+
+  invoiceItems  InvoiceItem[]
+  expenseItems  ExpenseItem[]
+}
+
+// ─── Invoice ──────────────────────────────────────────────────────────────────
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String
+  invoiceDate   DateTime      @default(now())
+  dueDate       DateTime?
+  status        InvoiceStatus @default(DRAFT)
+  contactId     String
+  contact       Contact       @relation(fields: [contactId], references: [id])
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  placeOfSupply String?       // state code of supply
+  isInterState  Boolean       @default(false)
+
+  subtotal      Float         @default(0)
+  totalCgst     Float         @default(0)
+  totalSgst     Float         @default(0)
+  totalIgst     Float         @default(0)
+  totalTax      Float         @default(0)
+  roundOff      Float         @default(0)
+  grandTotal    Float         @default(0)
+  amountPaid    Float         @default(0)
+  balanceDue    Float         @default(0)
+
+  notes         String?
+  terms         String?
+
+  items         InvoiceItem[]
+  payments      Payment[]
+  journalEntry  JournalEntry?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([companyId, invoiceNumber])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+// ─── Invoice Item ─────────────────────────────────────────────────────────────
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  hsnSac      String?
+  quantity    Float    @default(1)
+  unit        String?  @default("Nos")
+  rate        Float    @default(0)
+  amount      Float    @default(0)
+  taxRateId   String?
+  taxRate     TaxRate? @relation(fields: [taxRateId], references: [id])
+  cgstAmt     Float    @default(0)
+  sgstAmt     Float    @default(0)
+  igstAmt     Float    @default(0)
+  taxAmount   Float    @default(0)
+  total       Float    @default(0)
+}
+
+// ─── Expense (Purchase Bill) ──────────────────────────────────────────────────
+model Expense {
+  id             String        @id @default(cuid())
+  billNumber     String?
+  billDate       DateTime      @default(now())
+  dueDate        DateTime?
+  status         ExpenseStatus @default(PENDING)
+  contactId      String?
+  contact        Contact?      @relation(fields: [contactId], references: [id])
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  subtotal       Float         @default(0)
+  totalTax       Float         @default(0)
+  grandTotal     Float         @default(0)
+  amountPaid     Float         @default(0)
+
+  notes          String?
+  category       String?       // expense category
+
+  items          ExpenseItem[]
+  journalEntry   JournalEntry?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+// ─── Expense Item ─────────────────────────────────────────────────────────────
+model ExpenseItem {
+  id          String   @id @default(cuid())
+  expenseId   String
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  description String
+  hsnSac      String?
+  quantity    Float    @default(1)
+  rate        Float    @default(0)
+  amount      Float    @default(0)
+  taxRateId   String?
+  taxRate     TaxRate? @relation(fields: [taxRateId], references: [id])
+  taxAmount   Float    @default(0)
+  total       Float    @default(0)
+}
+
+// ─── Journal Entry (Double-Entry Bookkeeping) ─────────────────────────────────
+model JournalEntry {
+  id          String        @id @default(cuid())
+  entryDate   DateTime      @default(now())
+  entryNumber String
+  narration   String
+  type        EntryType     @default(MANUAL)
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoiceId   String?       @unique
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id])
+  expenseId   String?       @unique
+  expense     Expense?      @relation(fields: [expenseId], references: [id])
+  isPosted    Boolean       @default(true)
+
+  lines       JournalLine[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([companyId, entryNumber])
+}
+
+enum EntryType {
+  MANUAL
+  INVOICE
+  EXPENSE
+  PAYMENT
+  RECEIPT
+}
+
+// ─── Journal Line ─────────────────────────────────────────────────────────────
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String
+  debitAccount   Account      @relation("DebitAccount", fields: [accountId], references: [id])
+  creditAccountId String?
+  creditAccount   Account?    @relation("CreditAccount", fields: [creditAccountId], references: [id])
+  debit          Float        @default(0)
+  credit         Float        @default(0)
+  narration      String?
+}
+
+// ─── Payment ──────────────────────────────────────────────────────────────────
+model Payment {
+  id            String        @id @default(cuid())
+  paymentDate   DateTime      @default(now())
+  amount        Float
+  method        PaymentMethod @default(CASH)
+  reference     String?       // cheque no, UPI ref, etc.
+  invoiceId     String?
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  notes         String?
+  createdAt     DateTime      @default(now())
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  UPI
+  CARD
+  OTHER
+}
+
+// ─── Settings (app-level KV store) ───────────────────────────────────────────
+model Settings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}

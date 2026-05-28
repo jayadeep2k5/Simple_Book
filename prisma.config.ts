@@ -1,12 +1,15 @@
-import path from "node:path";
 import { defineConfig } from "prisma/config";
-
-const dbPath = path.join(process.cwd(), "prisma", "dev.db");
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { createClient } from "@libsql/client";
 
 export default defineConfig({
   schema: "./prisma/schema.prisma",
-  datasource: {
-    url: `file:${dbPath}`,
+  engine: "js",
+  async adapter() {
+    return new PrismaLibSQL({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
   },
   migrations: {
     seed: "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",

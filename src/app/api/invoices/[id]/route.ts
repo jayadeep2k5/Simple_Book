@@ -1,15 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const COMPANY_ID = "default-company";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const invoice = await prisma.invoice.findFirst({
-      where: { id: params.id, companyId: COMPANY_ID },
+      where: { id, companyId: COMPANY_ID },
       include: {
         contact: true,
         items: { include: { taxRate: true } },
@@ -24,17 +25,18 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
     // Delete existing items and recreate
-    await prisma.invoiceItem.deleteMany({ where: { invoiceId: params.id } });
+    await prisma.invoiceItem.deleteMany({ where: { invoiceId: id } });
 
     const invoice = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         invoiceDate: new Date(body.invoiceDate),
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
@@ -79,11 +81,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await prisma.invoice.delete({ where: { id: params.id } });
+    const { id } = await params;
+    await prisma.invoice.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });

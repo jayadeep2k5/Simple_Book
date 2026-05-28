@@ -91,6 +91,7 @@ model Contact {
 
   invoices    Invoice[]
   expenses    Expense[]
+  orders      Order[]
 }
 
 enum ContactType {
@@ -303,4 +304,91 @@ model Settings {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+// ─── Production Log ───────────────────────────────────────────────────────────
+model ProductionLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  kgs       Float
+  notes     String?
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, date])
+}
+
+// ─── Customer Orders ──────────────────────────────────────────────────────────
+model Order {
+  id          String        @id @default(cuid())
+  orderNumber String
+  orderDate   DateTime      @default(now())
+  customerId  String
+  customer    Contact       @relation(fields: [customerId], references: [id])
+  companyId   String
+  status      OrderStatus   @default(PENDING)
+  notes       String?
+  totalAmount Float         @default(0)
+  amountPaid  Float         @default(0)
+  balanceDue  Float         @default(0)
+  items       OrderItem[]
+  payments    OrderPayment[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([companyId, orderNumber])
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  pipeType    String // e.g. "PVC 110mm", "SWR White 75mm"
+  quantity    Int    @default(1)
+  ratePerPipe Float  @default(0)
+  weightPerPipe Float @default(0)
+  amount      Float  @default(0)
+}
+
+model OrderPayment {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Float
+  paidOn    DateTime @default(now())
+  method    String   @default("CASH")
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+// ─── Expense Tracker ──────────────────────────────────────────────────────────
+model TrackerCategory {
+  id        String         @id @default(cuid())
+  name      String
+  color     String         @default("#7C3AED")
+  companyId String
+  entries   TrackerEntry[]
+  createdAt DateTime       @default(now())
+
+  @@unique([companyId, name])
+}
+
+model TrackerEntry {
+  id         String          @id @default(cuid())
+  name       String
+  date       DateTime        @default(now())
+  amount     Float
+  notes      String?
+  categoryId String?
+  category   TrackerCategory? @relation(fields: [categoryId], references: [id])
+  companyId  String
+  createdAt  DateTime        @default(now())
 }

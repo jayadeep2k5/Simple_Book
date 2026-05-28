@@ -11,10 +11,4 @@ export default defineConfig({
   migrations: {
     seed: "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
   },
-  migrate: {
-    async adapter() {
-      const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
-      return new PrismaBetterSqlite3({ url: `file:${dbPath}` });
-    },
-  },
 });

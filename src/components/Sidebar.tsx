@@ -14,6 +14,30 @@ const Icon = {
       <rect x="9" y="9" width="6" height="6" rx="1" />
     </svg>
   ),
+  Production: () => (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="10" width="3" height="5" rx="0.5" />
+      <rect x="6" y="6" width="3" height="9" rx="0.5" />
+      <rect x="11" y="2" width="3" height="13" rx="0.5" />
+      <path d="M1 4l4-3 4 3 4-3" />
+    </svg>
+  ),
+  Orders: () => (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 2h12l-1 9H3L2 2z" />
+      <path d="M5 2V1M11 2V1" />
+      <circle cx="6" cy="13.5" r="1" />
+      <circle cx="11" cy="13.5" r="1" />
+      <path d="M5 7h6M5 9.5h4" />
+    </svg>
+  ),
+  Tracker: () => (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="12" height="12" rx="2" />
+      <path d="M8 5v3l2 2" />
+      <circle cx="8" cy="8" r="2.5" />
+    </svg>
+  ),
   Invoice: () => (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 2h10v12l-2-1.5L9 14l-2-1.5L5 14l-2-1.5V2z" />
@@ -87,19 +111,27 @@ const sections = [
     items: [{ href: "/dashboard", label: "Dashboard", icon: Icon.Dashboard }],
   },
   {
-    label: "Transactions",
+    label: "Factory",
     items: [
-      { href: "/invoices",  label: "Invoices",  icon: Icon.Invoice  },
-      { href: "/expenses",  label: "Expenses",  icon: Icon.Expense  },
-      { href: "/payments",  label: "Payments",  icon: Icon.Payment  },
+      { href: "/production", label: "Production Log", icon: Icon.Production },
+      { href: "/orders",     label: "Orders",         icon: Icon.Orders     },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/tracker",  label: "Expense Tracker", icon: Icon.Tracker  },
+      { href: "/expenses", label: "Bills & Expenses", icon: Icon.Expense  },
+      { href: "/payments", label: "Payments",         icon: Icon.Payment  },
     ],
   },
   {
     label: "Accounting",
     items: [
       { href: "/accounts",  label: "Chart of Accounts", icon: Icon.Accounts  },
-      { href: "/ledger",    label: "Ledger",            icon: Icon.Ledger    },
-      { href: "/contacts",  label: "Contacts",          icon: Icon.Contacts  },
+      { href: "/ledger",    label: "Ledger",             icon: Icon.Ledger    },
+      { href: "/contacts",  label: "Contacts",           icon: Icon.Contacts  },
+      { href: "/invoices",  label: "Invoices",           icon: Icon.Invoice   },
     ],
   },
   {
@@ -134,8 +166,8 @@ export default function Sidebar() {
           <Icon.Rupee />
         </div>
         <div>
-          <div className="sidebar-logo-text">BaaS</div>
-          <div className="sidebar-logo-sub">Books as a Service</div>
+          <div className="sidebar-logo-text">PipeBooks</div>
+          <div className="sidebar-logo-sub">Factory Accounts</div>
         </div>
       </div>
 
@@ -166,7 +198,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="sidebar-footer">GST Compliant · AY 2024‑25</div>
+      <div className="sidebar-footer">Pipe Factory · PipeBooks</div>
     </aside>
   );
 }

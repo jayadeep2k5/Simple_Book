@@ -16,6 +16,7 @@ export default function ContactsPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", type: "CUSTOMER", gstin: "", pan: "",
     phone: "", email: "", address: "", city: "", state: "", stateCode: "", pincode: "",
@@ -24,7 +25,8 @@ export default function ContactsPage() {
   const fetchContacts = () => {
     fetch("/api/contacts")
       .then((r) => r.json())
-      .then(setContacts)
+      .then((data) => setContacts(Array.isArray(data) ? data : []))
+      .catch(() => setContacts([]))
       .finally(() => setLoading(false));
   };
   useEffect(() => { fetchContacts(); }, []);
@@ -37,15 +39,28 @@ export default function ContactsPage() {
   const handleSubmit = async () => {
     if (!form.name) return;
     setSaving(true);
-    await fetch("/api/contacts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    setShowModal(false);
-    setForm({ name: "", type: "CUSTOMER", gstin: "", pan: "", phone: "", email: "", address: "", city: "", state: "", stateCode: "", pincode: "" });
-    fetchContacts();
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error || "Failed to save contact. Please try again.");
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+      setShowModal(false);
+      setSaveError(null);
+      setForm({ name: "", type: "CUSTOMER", gstin: "", pan: "", phone: "", email: "", address: "", city: "", state: "", stateCode: "", pincode: "" });
+      fetchContacts();
+    } catch {
+      setSaveError("Network error. Please check your connection.");
+      setSaving(false);
+    }
   };
 
   const filtered = contacts.filter((c) => {
@@ -166,11 +181,18 @@ export default function ContactsPage() {
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
-              <button onClick={handleSubmit} className="btn btn-primary" disabled={saving}>
-                {saving ? "Saving…" : "Save Contact"}
-              </button>
+            <div className="modal-footer" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+              {saveError && (
+                <div style={{ color: "var(--danger, #ef4444)", fontSize: 13, padding: "6px 10px", background: "rgba(239,68,68,0.08)", borderRadius: 6 }}>
+                  ⚠ {saveError}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => { setShowModal(false); setSaveError(null); }} className="btn btn-secondary">Cancel</button>
+                <button onClick={handleSubmit} className="btn btn-primary" disabled={saving}>
+                  {saving ? "Saving…" : "Save Contact"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
